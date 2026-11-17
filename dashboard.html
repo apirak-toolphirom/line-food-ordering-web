@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>แดชบอร์ดสรุปการสั่งอาหาร</title>
+<style>
+:root{--bg:#faf6ee;--card:#fff;--ink:#2b2118;--mute:#7a6a58;--line:#e8dfd0;--acc:#c8321f;--acc2:#f2a900;--ok:#1f8a4c;--warn:#b26a00;--bad:#c0392b;--grey:#8a7d6c}
+@media(prefers-color-scheme:dark){:root{--bg:#1d1812;--card:#2a231a;--ink:#f3ebdf;--mute:#b3a592;--line:#43392b;--acc:#ef5a43;--acc2:#f2b01e;--ok:#4cc27d;--warn:#e0a03a;--bad:#ef6a5a;--grey:#a09280}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans Thai","Sarabun",system-ui,sans-serif;font-size:15px;line-height:1.45;padding-bottom:30px}
+header{background:var(--acc);color:#fff;padding:14px 16px}header h1{margin:0;font-size:19px}header small{opacity:.9}
+.test{background:var(--acc2);color:#2b2118;padding:6px 16px;font-size:13px}
+main{max-width:760px;margin:0 auto;padding:12px}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+@media(min-width:560px){.kpis{grid-template-columns:repeat(4,1fr)}}
+.k{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.k span{display:block;font-size:12.5px;color:var(--mute)}.k b{font-size:21px}
+.prog{height:12px;border-radius:99px;background:var(--line);overflow:hidden;display:flex;margin:10px 0 2px}
+.prog i{display:block;height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12.5px;color:var(--mute)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px}
+h2{font-size:16px;margin:18px 0 6px}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:4px 0}
+.chip{white-space:nowrap;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:99px;padding:5px 11px;font:inherit;font-size:13.5px}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:8px 0}
+.row{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.sub{font-size:13px;color:var(--mute)}
+.badge{display:inline-block;border-radius:99px;padding:1px 9px;font-size:12.5px;font-weight:700;white-space:nowrap}
+.b-paid{background:rgba(31,138,76,.15);color:var(--ok)}.b-unpaid{background:rgba(138,125,108,.2);color:var(--grey)}
+.b-pending{background:rgba(178,106,0,.16);color:var(--warn)}.b-short,.b-over{background:rgba(242,169,0,.2);color:var(--warn)}.b-dup{background:rgba(192,57,43,.15);color:var(--bad)}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:9px;padding:6px 10px;font:inherit;font-size:13.5px;cursor:pointer}
+.btn.pri{background:var(--acc);color:#fff;border-color:var(--acc)}
+.btn[disabled]{opacity:.5}
+table{width:100%;border-collapse:collapse;font-size:14px}td,th{padding:6px 4px;border-bottom:1px dashed var(--line);text-align:left}th{font-size:12.5px;color:var(--mute);font-weight:600}td.n,th.n{text-align:right}
+textarea{width:100%;min-height:110px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);font:inherit;font-size:14px}
+input[type=password],input[type=date],input[type=time],input[type=text]{padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink);font:inherit}
+.note{font-size:12.5px;color:var(--mute)}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.days{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}.days label{border:1px solid var(--line);border-radius:99px;padding:4px 10px;font-size:13.5px;background:var(--card)}
+.mrow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 0;border-bottom:1px dashed var(--line);font-size:14px}.mrow.off span{text-decoration:line-through;color:var(--mute)}
+.err{color:var(--bad);font-size:13.5px;margin-top:6px}
+</style></head><body>
+<header><h1 id="shop">📋 แดชบอร์ดสรุปการสั่งอาหาร</h1><small id="date"></small></header>
+<div class="test" id="testbar" style="display:none">โหมดทดสอบ (MODE=TEST ในหน้า Config)</div>
+<main>
+<div class="card" id="login" style="display:none">
+ <b>เข้าสู่ระบบแอดมิน</b>
+ <div class="sub">ใส่รหัสแอดมิน (ADMIN_KEY ใน Script properties ของ Apps Script)</div>
+ <div class="bar" style="margin-top:8px"><input type="password" id="key" autocomplete="off" placeholder="รหัสแอดมิน"><button class="btn pri" id="loginbtn">เข้าสู่ระบบ</button></div>
+ <div class="err" id="lerr"></div>
+</div>
+
+<div id="app" style="display:none">
+<div class="bar">
+ <label class="sub">วันที่ <input type="date" id="dt"></label>
+ <button class="btn" id="refresh">รีเฟรช</button>
+ <span class="note" id="upd"></span>
+ <button class="btn" id="logout" style="margin-left:auto">ออกจากระบบ</button>
+</div>
+<div class="err" id="msg"></div>
+<div class="card" id="ordbar">
+ <div class="row"><div><b id="ordstate">…</b><div class="sub" id="ordnote"></div></div><button class="btn pri" id="quick" data-to="CLOSED">…</button></div>
+ <details style="margin-top:8px" id="adm"><summary class="sub" style="cursor:pointer">⚙️ เมนูผู้ดูแล — ตั้งเวลาเปิด/ปิดรับ และเมนูหมด</summary>
+  <div class="sub" style="margin-top:8px">การรับออเดอร์</div>
+  <div class="chips" id="modes"><button class="chip" data-om="OPEN">เปิดรับตลอด</button><button class="chip" data-om="AUTO">ตามเวลา</button><button class="chip" data-om="CLOSED">ปิดรับ</button></div>
+  <div id="schedbox">
+   <div class="bar"><label class="sub">เปิดรับ <input type="time" id="ot"></label><label class="sub">ปิดรับ <input type="time" id="ct"></label></div>
+   <div class="sub">เฉพาะวัน (ไม่เลือก = ทุกวัน)</div>
+   <div class="days" id="days"></div>
+  </div>
+  <div class="sub">ข้อความที่แสดงตอนปิดรับ</div>
+  <input type="text" id="cm" maxlength="100" style="width:100%;margin:4px 0 8px">
+  <button class="btn pri" id="saveset">บันทึกการตั้งค่า</button> <span class="note" id="setmsg"></span>
+  <div class="sub" style="margin-top:12px"><b>เมนูหมด / มีขาย</b> (กดเพื่อสลับ)</div>
+  <div id="menulist"></div>
+ </details>
+</div>
+<div class="kpis" id="kpis"></div>
+<div class="prog" id="prog"></div><div class="legend" id="legend"></div>
+
+<h2>รายชื่อผู้สั่ง</h2>
+<div class="chips" id="chips"></div>
+<div id="list"></div>
+
+<h2>สรุปให้ร้าน (จำนวนจานแยกตามเมนู)</h2>
+<div class="card"><table id="sum"></table></div>
+<button class="btn pri" data-act="shop">สร้างข้อความส่งร้าน</button>
+
+<h2>ข้อความทวงคนค้างชำระ</h2>
+<button class="btn pri" data-act="dun">สร้างข้อความทวง (วางลงกลุ่ม)</button>
+<div id="out" style="margin-top:8px"></div>
+<p class="note">สถานะ "รอตรวจ/ยอดเกิน/สลิปซ้ำ" มาจากบอทที่อ่านสลิป ตรวจรูปในกลุ่มแล้วกด "ยืนยันรับเงิน" เพื่อให้ถือว่าชำระแล้ว (ข้อความทวงรวมเฉพาะ "ยังไม่จ่าย" และ "จ่ายไม่ครบ")</p>
+</div>
+</main>
+<script>
+const API='https://script.google.com/macros/s/AKfycbwzSfC1cQR2N3RXNIia3laml3dIc_ZpcGJ-Rld1QbxaAEJtxHwH9qF7_dFQ_h2-jY1E-g/exec';   // ← URL ของ Apps Script Web app (ลงท้าย /exec) — ที่เดียวที่ต้องแก้ในไฟล์นี้
+const ST={paid:['จ่ายครบ','var(--ok)'],unpaid:['ยังไม่จ่าย','var(--grey)'],pending:['รอตรวจ','var(--warn)'],short:['จ่ายไม่ครบ','#d9a400'],over:['ยอดเกิน','#d9a400'],dup:['สลิปซ้ำ','var(--bad)']};
+let KEY='',DATE='',orders=[],flt='all',timer=null,busyId=null,SET=null,selMode='OPEN';
+const DAYN=['จ','อ','พ','พฤ','ศ','ส','อา'];
+const $=id=>document.getElementById(id),esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const r2=x=>Math.round(x*100)/100;
+const tot=o=>o.total, dishes=o=>o.items.reduce((s,i)=>s+i.qty,0);
+const itemName=i=>i.name+(i.choice?' ('+i.choice+')':'');
+const itemOpt=i=>[i.size,...i.extras,i.note].filter(Boolean).join(' · ');
+function store(k,v){try{if(v==null)localStorage.removeItem(k);else localStorage.setItem(k,v);}catch(e){}}
+function load_(k){try{return localStorage.getItem(k)||'';}catch(e){return '';}}
+
+async function api(action,body){
+  const ac=new AbortController(),tm=setTimeout(()=>ac.abort(),25000);
+  try{
+    const r=await fetch(API,{method:'POST',body:JSON.stringify(Object.assign({action,key:KEY},body||{})),signal:ac.signal});
+    return await r.json();
+  }catch(e){return {ok:false,error:'เชื่อมต่อระบบไม่ได้ ลองใหม่อีกครั้ง'};}
+  finally{clearTimeout(tm);}
+}
+function showLogin(err){
+  clearInterval(timer);timer=null;
+  $('app').style.display='none';$('login').style.display='block';$('lerr').textContent=err||'';
+}
+async function enter(){
+  KEY=$('key').value.trim();if(!KEY){$('lerr').textContent='กรุณาใส่รหัสแอดมิน';return}
+  $('lerr').textContent='กำลังตรวจสอบ…';
+  if(await refresh(true)){store('adminKey',KEY);$('key').value=''}
+}
+function logout(){store('adminKey',null);KEY='';orders=[];SET=null;showLogin('')}
+
+// ---------- เปิด/ปิดรับออเดอร์ + เมนูผู้ดูแล ----------
+function drawOrdering(o){
+ if(!o)return;
+ $('ordstate').textContent=o.open?'🟢 เปิดรับออเดอร์':'🔴 ปิดรับออเดอร์';
+ const how=o.mode==='AUTO'?'ตามเวลา':o.mode==='CLOSED'?'ปิดเอง':'เปิดเอง';
+ $('ordnote').textContent=how+(o.open?(o.note?' '+o.note:''):(o.message?' — '+o.message:''));
+ $('quick').textContent=o.open?'ปิดรับออเดอร์ตอนนี้':'เปิดรับออเดอร์ตอนนี้';$('quick').dataset.to=o.open?'CLOSED':'OPEN';
+}
+function drawModes(){
+ document.querySelectorAll('#modes .chip').forEach(b=>b.classList.toggle('on',b.dataset.om===selMode));
+ $('schedbox').style.display=selMode==='AUTO'?'block':'none';
+}
+function drawMenuList(){
+ $('menulist').innerHTML=SET.menu.map(m=>`<div class="mrow ${m.unavailable?'off':''}"><span>${esc(m.name)}</span><button class="btn" data-mid="${m.id}" data-un="${m.unavailable?1:0}">${m.unavailable?'คืนเป็นมีขาย':'ตั้งเป็นหมด'}</button></div>`).join('');
+}
+function drawSettings(){
+ const s=SET.settings;selMode=s.mode;
+ $('ot').value=s.openTime;$('ct').value=s.closeTime;$('cm').value=s.message;
+ $('days').innerHTML=DAYN.map((n,i)=>`<label><input type="checkbox" value="${i+1}" ${s.days.indexOf(String(i+1))>=0?'checked':''}> ${n}</label>`).join('');
+ drawModes();drawMenuList();
+}
+async function loadSettings(){const r=await api('adminSettings');if(r.ok){SET=r;drawOrdering(r.ordering);drawSettings()}}
+async function applySettings(body,msgEl){
+ const r=await api('adminSaveSettings',body);
+ if(!r.ok){if(r.code==='auth')showLogin(r.error);else $(msgEl).textContent=r.error||'บันทึกไม่สำเร็จ';return}
+ SET=r;drawOrdering(r.ordering);drawSettings();$(msgEl).textContent='บันทึกแล้ว';setTimeout(()=>{if($(msgEl).textContent==='บันทึกแล้ว')$(msgEl).textContent=''},2500);
+}
+
+// manual=true: แสดงข้อผิดพลาดบนหน้า login ได้
+async function refresh(manual){
+  if(!API||API.indexOf('PASTE_')===0){showLogin('ยังไม่ได้ใส่ URL ของ API (ค่า API บรรทัดแรกของสคริปต์ในไฟล์นี้)');return false}
+  const r=await api('adminOrders',{date:DATE});
+  if(!r.ok){
+    if(r.code==='auth'){store('adminKey',null);showLogin(manual?r.error:'');return false}
+    $('msg').textContent=r.error||'โหลดข้อมูลไม่สำเร็จ';if($('app').style.display==='none')showLogin(r.error);return false;
+  }
+  $('msg').textContent='';
+  DATE=r.date;$('dt').value=r.date;orders=r.orders;
+  if(r.shopName)$('shop').textContent='📋 สรุปการสั่งอาหาร — '+r.shopName;
+  $('testbar').style.display=r.mode==='PROD'?'none':'block';
+  $('date').textContent='วันที่ '+new Date(r.date+'T00:00:00').toLocaleDateString('th-TH',{day:'numeric',month:'long',year:'numeric'})+(r.date===r.today?' (วันนี้)':'');
+  $('upd').textContent='อัปเดต '+new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  $('login').style.display='none';$('app').style.display='block';
+  if(!timer)timer=setInterval(()=>{if(!document.hidden&&!busyId&&DATE===$('dt').value)refresh()},30000);
+  drawOrdering(r.ordering);if(!SET)loadSettings();
+  draw();return true;
+}
+
+function draw(){
+ const all=orders.length,got=orders.filter(o=>o.status==='paid'),need=orders.filter(o=>o.status!=='paid');
+ const sum=orders.reduce((s,o)=>s+tot(o),0),recv=got.reduce((s,o)=>s+tot(o),0);
+ $('kpis').innerHTML=[['ออเดอร์',all],['จานรวม',orders.reduce((s,o)=>s+dishes(o),0)],['ยอดรวม',sum+' บ.'],['รับแล้ว / ค้าง',recv+' / '+(sum-recv)+' บ.']].map(k=>`<div class="k"><span>${k[0]}</span><b>${k[1]}</b></div>`).join('');
+ const cnt={};orders.forEach(o=>cnt[o.status]=(cnt[o.status]||0)+1);
+ $('prog').innerHTML=Object.keys(ST).filter(k=>cnt[k]).map(k=>`<i style="width:${cnt[k]/all*100}%;background:${ST[k][1]}"></i>`).join('');
+ $('legend').innerHTML=Object.keys(ST).filter(k=>cnt[k]).map(k=>`<span><span class="dot" style="background:${ST[k][1]}"></span>${ST[k][0]} ${cnt[k]}</span>`).join('');
+ if(flt!=='all'&&flt!=='need'&&!cnt[flt])flt='all';
+ $('chips').innerHTML=[['all','ทั้งหมด '+all],['need','ยังไม่เรียบร้อย '+need.length],...Object.keys(ST).filter(k=>cnt[k]).map(k=>[k,ST[k][0]+' '+cnt[k]])].map(c=>`<button class="chip ${flt===c[0]?'on':''}" data-flt="${c[0]}">${c[1]}</button>`).join('');
+ const L=orders.filter(o=>flt==='all'||(flt==='need'?o.status!=='paid':o.status===flt));
+ $('list').innerHTML=L.map(o=>{const t=tot(o),diff=r2(o.paidAmount-t);
+  let extra=o.status==='short'?` · ขาด ${r2(-diff)} บ.`:o.status==='over'?` · เกิน ${diff} บ.`:'';
+  const why=(o.status==='pending'||o.status==='dup'||o.status==='over')&&o.msg?`<div class="sub">${esc(o.msg)}</div>`:'';
+  return `<div class="card"><div class="row"><div><b>${esc(o.name)}</b> <span class="sub">${esc(o.orderId)}</span>
+  <div class="sub">${o.items.map(i=>`${esc(itemName(i))}${itemOpt(i)?' ('+esc(itemOpt(i))+')':''} ×${i.qty}`).join(', ')}</div></div>
+  <div style="text-align:right"><b>${t} บ.</b><br><span class="badge b-${o.status}">${(ST[o.status]||[o.status])[0]}</span></div></div>${why}
+  <div class="row" style="margin-top:6px"><span class="sub">โอนมา ${o.paidAmount} บ.${extra}</span>${o.status==='paid'?'':`<button class="btn" data-confirm="${esc(o.orderId)}">ยืนยันรับเงิน</button>`}</div></div>`}).join('')||'<div class="sub">ไม่มีรายการ</div>';
+ const m={};orders.forEach(o=>o.items.forEach(i=>{const k=itemName(i)+(itemOpt(i)?' ('+itemOpt(i)+')':'');m[k]=(m[k]||0)+i.qty}));
+ $('sum').innerHTML='<tr><th>เมนู</th><th class="n">จาน</th></tr>'+Object.entries(m).sort((a,b)=>b[1]-a[1]).map(e=>`<tr><td>${esc(e[0])}</td><td class="n">${e[1]}</td></tr>`).join('');
+}
+
+async function confirmPay(id){
+ const o=orders.find(x=>x.orderId===id);if(!o||busyId)return;
+ if(!confirm(`ยืนยันว่าได้รับเงินของ ${o.name} (${o.orderId}) ${tot(o)} บาทแล้ว?`))return;
+ busyId=id;const r=await api('adminConfirm',{orderId:id});busyId=null;
+ if(!r.ok){if(r.code==='auth')showLogin(r.error);else $('msg').textContent=r.error||'ยืนยันไม่สำเร็จ';return}
+ await refresh();
+}
+function show(t){$('out').innerHTML=`<textarea id="ta" readonly>${esc(t)}</textarea><button class="btn" id="cpbtn">คัดลอก</button> <span class="note" id="cpn"></span>`;
+ $('ta').value=t;$('cpbtn').onclick=cp}
+function cp(){const ta=$('ta');ta.select();try{navigator.clipboard.writeText(ta.value).then(()=>$('cpn').textContent='คัดลอกแล้ว',()=>$('cpn').textContent='เลือกข้อความแล้ว กดคัดลอกเอง')}catch(e){$('cpn').textContent='เลือกข้อความแล้ว กดคัดลอกเอง'}}
+function dunText(){
+ const n=orders.filter(o=>o.status==='unpaid'||o.status==='short');
+ if(!n.length){show('ทุกคนชำระแล้ว 🎉');return}
+ show('📢 เตือนค้างชำระค่าข้าว\n'+n.map(o=>`• ${o.name} ${r2(tot(o)-o.paidAmount)} บาท`).join('\n')+'\nโอนแล้วส่งสลิปในกลุ่มได้เลยครับ 🙏')}
+function shopText(){const m={};orders.forEach(o=>o.items.forEach(i=>{const k=itemName(i)+(itemOpt(i)?' ('+itemOpt(i)+')':'');m[k]=(m[k]||0)+i.qty}));
+ if(!orders.length){show('ยังไม่มีออเดอร์');return}
+ show('รายการสั่งวันนี้ รวม '+orders.reduce((s,o)=>s+dishes(o),0)+' จาน\n'+Object.entries(m).map(e=>`${e[0]} ${e[1]} จาน`).join('\n'))}
+
+document.addEventListener('click',async e=>{
+ const t=e.target.closest('button');if(!t)return;
+ if(t.dataset.om){selMode=t.dataset.om;drawModes()}
+ else if(t.dataset.mid){
+  const r=await api('adminSetMenu',{id:Number(t.dataset.mid),unavailable:t.dataset.un==='0'});
+  if(r.ok){SET.menu=r.menu;drawMenuList()}else if(r.code==='auth')showLogin(r.error);else $('setmsg').textContent=r.error||'ไม่สำเร็จ';
+ }
+ else if(t.dataset.flt){flt=t.dataset.flt;draw()}
+ else if(t.dataset.confirm)confirmPay(t.dataset.confirm);
+ else if(t.dataset.act==='dun')dunText();
+ else if(t.dataset.act==='shop')shopText();
+});
+$('quick').onclick=()=>{$('quick').disabled=true;applySettings({mode:$('quick').dataset.to},'msg').then(()=>{$('quick').disabled=false;$('msg').textContent=''})};
+$('saveset').onclick=()=>applySettings({mode:selMode,openTime:$('ot').value,closeTime:$('ct').value,days:[...document.querySelectorAll('#days input:checked')].map(x=>x.value),message:$('cm').value},'setmsg');
+$('loginbtn').onclick=enter;$('key').onkeydown=e=>{if(e.key==='Enter')enter()};
+$('refresh').onclick=()=>refresh();$('logout').onclick=logout;
+$('dt').onchange=()=>{DATE=$('dt').value;refresh()};
+KEY=load_('adminKey');
+if(KEY)refresh(); else showLogin('');
+</script></body></html>
